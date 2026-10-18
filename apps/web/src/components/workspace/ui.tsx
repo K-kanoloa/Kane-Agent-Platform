@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ApiRequestError, type Activity, type Turn, type TurnStatus } from "@/lib/api";
 import { useLocale, useT } from "@/lib/i18n/LocaleProvider";
+import { X } from "lucide-react";
 
 export function IconButton({ label, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; children: ReactNode }) {
   return <button type="button" {...props} className={`icon-button ${props.className ?? ""}`} aria-label={label} title={label}><span aria-hidden="true">{children}</span></button>;
@@ -10,6 +11,10 @@ export function IconButton({ label, children, ...props }: ButtonHTMLAttributes<H
 
 export function BrandMark({ small = false }: { small?: boolean }) {
   return <span className={`brand-mark ${small ? "small" : ""}`}><img src="/kane-octopus.png" alt="Kane" width={40} height={40} /></span>;
+}
+
+export function AgentAvatar({ agentId, name, className = "" }: { agentId: string; name?: string; className?: string }) {
+  return <span className={`identity-avatar ${agentId === "kanaloa" ? "builtin" : "external"} ${className}`} aria-hidden="true">{agentId === "kanaloa" ? <img src="/kane-octopus.png" alt="" width={32} height={32} /> : (name || agentId).trim().slice(0, 2).toUpperCase()}</span>;
 }
 
 export function Status({ status }: { status: TurnStatus }) {
@@ -24,11 +29,12 @@ export function turnTitle(turn: Turn, t: (key: string) => string) {
   return turn.title;
 }
 
-export function Time({ value, full = false }: { value: string; full?: boolean }) {
+export function Time({ value, full = false, calendar = false }: { value: string; full?: boolean; calendar?: boolean }) {
   const { locale } = useLocale();
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return <time dateTime={value} title={date.toLocaleString(locale)}>{full ? date.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</time>;
+  const olderDay = calendar && date.toDateString() !== new Date().toDateString();
+  return <time dateTime={value} title={date.toLocaleString(locale)}>{full ? date.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : olderDay ? date.toLocaleDateString(locale, { month: "short", day: "numeric" }) : date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</time>;
 }
 
 export function ErrorNotice({ error, onRetry, action = false }: { error: unknown; onRetry?: () => void; action?: boolean }) {
@@ -58,5 +64,5 @@ export function Modal({ title, children, onClose }: { title: string; children: R
     dialog.showModal();
     return () => { dialog.close(); previous?.focus(); };
   }, []);
-  return <dialog className="modal" ref={ref} aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === ref.current) { const rect = ref.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }}><header><h2>{title}</h2><IconButton label={t("close")} onClick={onClose}>×</IconButton></header>{children}</dialog>;
+  return <dialog className="modal" ref={ref} aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === ref.current) { const rect = ref.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }}><header><h2>{title}</h2><IconButton label={t("close")} onClick={onClose}><X size={18} /></IconButton></header>{children}</dialog>;
 }

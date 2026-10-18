@@ -1,5 +1,18 @@
 # Kane-Kanaloa v3.0.1-beta
 
+## Current Source Update
+
+The current source includes optional session-owned persistent Python and bounded
+structured execution tools. See packages/kanaloa-tools/ACCEPTANCE.md for their
+recorded acceptance evidence and limits. README and GitHub Pages now describe
+the current Conversation/Agent Harness rather than the historical v2 product.
+
+Kane-Kanaloa's own code now uses PolyForm Noncommercial 1.0.0 (see LICENSE).
+Third-party licenses remain unchanged. The following release checks are
+historical records, not a fresh test run of this documentation/license update.
+
+## Original Release Record
+
 Date: 2026-10-05 (Australia/Sydney). Security/correctness patch on `main`.
 **Known or unknown bugs may exist.** This is not production or universal Agent
 compatibility certification. The earlier v3.0.0-beta and historical v2 tags remain.
@@ -75,5 +88,6 @@ isolated independent child-process crash test.
 
 Breaking architecture baseline relative to v2. No automatic legacy data import
 is promised. Back up databases and configuration before upgrading.
-Historical releases are retained. Project license status remains UNLICENSED;
-dependency attribution is in THIRD_PARTY_NOTICES.md.
+Historical releases are retained. The original release was UNLICENSED; the
+current source license is PolyForm Noncommercial 1.0.0. Dependency attribution
+is in THIRD_PARTY_NOTICES.md.

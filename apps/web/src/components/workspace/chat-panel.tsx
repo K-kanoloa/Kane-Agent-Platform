@@ -1,10 +1,13 @@
 "use client";
 
+import { ArrowDown, Check, Copy, GitBranch, Reply, UserRound } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useEffect, useRef, useState } from "react";
 import { type Agent, type Decision, type Message, type Turn, type TurnDetail } from "@/lib/api";
 import { useT } from "@/lib/i18n/LocaleProvider";
 import { type Connection } from "@/lib/use-turn";
-import { activityLabel, BrandMark, ErrorNotice, IconButton, Loading, Time, turnTitle } from "./ui";
+import { activityLabel, AgentAvatar, BrandMark, ErrorNotice, IconButton, Loading, Time, turnTitle } from "./ui";
 
 export function ChatPanel({ messages, detail, turns, agent, connection, error, busy, onRefresh, onBranch, onReply, onPermission, onResume }: { messages: Message[]; detail: TurnDetail | null; turns: Turn[]; agent?: Agent; connection: Connection; error: unknown; busy: boolean; onRefresh: () => void; onBranch: (message: Message) => void; onReply: (message: Message) => void; onPermission: (requestId: string, decision: Decision) => void; onResume: () => void }) {
   const t = useT();
@@ -33,22 +36,22 @@ export function ChatPanel({ messages, detail, turns, agent, connection, error, b
         const retracted = change?.kind === "retract" || message.kind === "retract";
         const content = change?.kind === "edit" ? change.content : message.content;
         const sourceTurn = turns.find(turn => turn.turn_id === message.turn_id);
-        const sender = message.sender === "user" ? t("you") : message.sender === "system" ? t("system") : message.sender_id === "kanaloa" || !message.sender_id ? "Kanaloa" : message.sender_id;
+        const sender = message.sender === "user" ? t("you") : message.sender === "system" ? t("system") : message.sender_id === agent?.agent_id ? agent.display_name || agent.agent_id : message.sender_id || detail?.bound_agent_id || t("agent");
         return <article className={`message-row message-${message.sender}`} key={message.message_id} data-message-id={message.message_id} data-testid={`message-${message.sender}`}>
-          <div className="message-avatar" aria-hidden="true">{message.sender === "agent" ? "K" : message.sender === "user" ? "Y" : "·"}</div>
+          <div className="message-avatar" aria-hidden="true">{message.sender === "agent" ? <AgentAvatar agentId={message.sender_id || detail?.bound_agent_id || ""} name={sender} /> : message.sender === "user" ? <UserRound size={16} /> : "·"}</div>
           <div className="message-main"><header className="message-meta"><strong>{sender}</strong><Time value={message.created_at} />{sourceTurn && sourceTurn.turn_id !== detail?.turn_id && <span className="message-source" title={sourceTurn.title ?? undefined}>{turnTitle(sourceTurn, t)}</span>}</header>
-            <div className={`message-content ${retracted ? "retracted" : ""}`}>{retracted ? t("retracted") : content}</div>
+            <div className={`message-content ${retracted ? "retracted" : ""}`}>{retracted ? t("retracted") : message.sender === "agent" ? <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{content}</ReactMarkdown> : content}</div>
             {(change?.kind === "edit" || message.kind === "edit") && <small className="edited-note">{t("edited")}</small>}
-            <div className="message-actions">{!retracted && <><IconButton label={copied === message.message_id ? t("copied") : t("copy")} onClick={() => void copy(message, content)}>{copied === message.message_id ? "✓" : "⧉"}</IconButton><IconButton label={t("reply")} onClick={() => onReply(message)}>↩</IconButton></>}{agent?.branch_mode !== "unsupported" && agent && <button className="text-button branch-action" onClick={() => onBranch(message)}><span aria-hidden="true">⑂</span>{t("branchFrom")}</button>}</div>
+            <div className="message-actions">{!retracted && <><IconButton label={copied === message.message_id ? t("copied") : t("copy")} onClick={() => void copy(message, content)}>{copied === message.message_id ? <Check size={14} /> : <Copy size={14} />}</IconButton><IconButton label={t("reply")} onClick={() => onReply(message)}><Reply size={14} /></IconButton></>}{agent?.branch_mode !== "unsupported" && agent && <button className="text-button branch-action" onClick={() => onBranch(message)}><GitBranch size={14} aria-hidden="true" />{t("branchFrom")}</button>}</div>
           </div>
         </article>;
       })}
       {copyError && <p className="inline-error" role="alert">{t("copyFailed")}</p>}
-      {detail?.partial_output && <article className="message-row message-agent" data-testid="partial-reply"><div className="message-avatar" aria-hidden="true">K</div><div className="message-main"><header className="message-meta"><strong>{detail.bound_agent_id === "kanaloa" ? "Kanaloa" : detail.bound_agent_id}</strong><span>{t(detail.status === "interrupted" || detail.status === "failed" ? "partial" : "streaming")}</span></header><div className="message-content">{detail.partial_output}</div>{detail.status === "running" && <span className="stream-caret" aria-hidden="true" />}</div></article>}
+      {detail?.partial_output && <article className="message-row message-agent" data-testid="partial-reply"><div className="message-avatar" aria-hidden="true"><AgentAvatar agentId={detail.bound_agent_id} name={agent?.display_name || undefined} /></div><div className="message-main"><header className="message-meta"><strong>{agent?.display_name || detail.bound_agent_id}</strong><span>{t(detail.status === "interrupted" || detail.status === "failed" ? "partial" : "streaming")}</span></header><div className="message-content"><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{detail.partial_output}</ReactMarkdown></div>{detail.status === "running" && <span className="stream-caret" aria-hidden="true" />}</div></article>}
       {detail?.status === "running" && !detail.partial_output && <div className="working-indicator" role="status"><span className="working-dots"><i /><i /><i /></span>{latestActivity ? activityLabel(latestActivity, t) : t("eventProgress")}</div>}
       {detail && ["interrupted", "failed"].includes(detail.status) && <div className={`runtime-notice ${detail.status}`} role="status"><div><strong>{t(detail.status === "failed" ? "failure" : "interruption")}</strong>{detail.interrupt_reason && <p>{detail.interrupt_reason}</p>}{detail.status === "interrupted" && !agent?.supports_resume && <p>{t("unavailableResume")}</p>}</div>{detail.status === "interrupted" && agent?.supports_resume && <button className="button secondary compact" onClick={onResume} disabled={busy}>{t("resume")}</button>}</div>}
       {detail?.status === "waiting_user" && detail.pending_permissions.length === 0 && <div className="runtime-notice waiting_user"><strong>{t("waiting")}</strong><p>{t("permissionMissing")}</p></div>}
       {detail?.pending_permissions.map(permission => <section className="approval-card" key={permission.request_id} aria-label={t("approval")}><div className="approval-symbol" aria-hidden="true">?</div><div><h3>{t("approval")}</h3><p>{permission.title}</p><div className="approval-actions"><button className="button primary compact" onClick={() => onPermission(permission.request_id, "allow-once")} disabled={busy}>{t("allow")}</button><button className="button secondary compact" onClick={() => onPermission(permission.request_id, "reject-once")} disabled={busy}>{t("deny")}</button><button className="text-button" onClick={() => onPermission(permission.request_id, "cancelled")} disabled={busy}>{t("cancelRequest")}</button></div></div></section>)}
     </div>
-  </div>{!atBottom && <button className="jump-latest button secondary compact" onClick={() => { following.current = true; if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight; setAtBottom(true); }}>↓ {t("scrollLatest")}</button>}</div>;
+  </div>{!atBottom && <button className="jump-latest button secondary compact" onClick={() => { following.current = true; if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight; setAtBottom(true); }}><ArrowDown size={14} />{t("scrollLatest")}</button>}</div>;
 }

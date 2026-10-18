@@ -141,6 +141,14 @@ try {
     assert.deepEqual(bodies.at(-1).body, { base_url: "https://api.example.com/v1", model: "ui-contract-model", api_key: "ui-contract-placeholder" });
     assert.equal(await modal.getByLabel("API Key", { exact: true }).inputValue(), "");
     assert.equal(context.pages().length, 1);
+    for (const format of ["openai-responses", "anthropic-messages"]) {
+      await modal.getByLabel("API format", { exact: true }).selectOption(format);
+      await modal.getByLabel("API Key", { exact: true }).fill("ui-contract-placeholder");
+      await modal.getByRole("button", { name: "Save model configuration", exact: true }).click();
+      await modal.getByText("Model configuration saved for the built-in Kanaloa runtime.", { exact: true }).waitFor();
+      assert.equal(bodies.at(-1).body.api_format, format);
+      assert.equal(await modal.getByLabel("API Key", { exact: true }).inputValue(), "");
+    }
     await page.unroute("**/agents/kanaloa/model-config");
     await screenshot("agent-settings");
     await modal.getByRole("button", { name: "Close", exact: true }).click();
@@ -188,6 +196,12 @@ try {
     assert.ok(!(await apiGet("/api/v1/conversations")).some(item => item.conversation_id === removed));
     await page.locator(".conversation-row").filter({ hasText: "Kane architecture review" }).click();
     await poll(currentId, id => id === cid);
+    const search = page.getByRole("searchbox", { name: "Search conversations", exact: true });
+    await search.fill("not-present");
+    assert.equal(await page.locator(".conversation-row").count(), 0);
+    await search.fill("architecture");
+    assert.equal(await page.locator(".conversation-row").count(), 1);
+    await search.fill("");
   });
   await check("first send / streaming / one logical message / safe events", async () => {
     await send("Review the Kane architecture and explain the conversation boundary.");
@@ -312,9 +326,11 @@ try {
       assert.equal(first.status, 200);
       await route.continue();
     });
+    const rejected = page.waitForResponse(response => response.url().includes("/permissions/") && response.status() === 400);
     await page.getByRole("button", { name: "Allow once", exact: true }).click();
-    await page.getByRole("alert").filter({ hasText: "Unknown permission request" }).waitFor();
-    assert.equal(badResponses.at(-1).status, 400);
+    const failure = await (await rejected).json();
+    assert.equal(failure.detail, "Permission does not belong to this Turn");
+    await page.getByRole("alert").filter({ hasText: failure.detail }).waitFor();
     await page.unroute("**/permissions/*/respond");
   });
 
@@ -379,7 +395,22 @@ try {
     const messages = await apiGet(`/api/v1/conversations/${currentId()}/messages`);
     const replies = messages.filter(message => message.turn_id === currentTurn() && message.sender === "agent");
     assert.equal(replies.length, 1); assert.ok(replies[0].content.length > 30000);
-    await poll(() => page.locator(`[data-message-id="${replies[0].message_id}"] .message-content`).textContent(), text => text === replies[0].content);
+    await poll(() => page.locator(`[data-message-id="${replies[0].message_id}"] .message-content`).textContent(), text => text.trimEnd() === replies[0].content.trimEnd());
+  });
+
+  await check("finished Turn continued by another client refreshes its live view", async () => {
+    const turnId = currentTurn();
+    const response = await fetch(`${apiBase}/api/v1/conversations/${currentId()}/messages`, {
+      method: "POST", headers: { "X-Api-Key": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "[hold] Continue from another client.", turn_id: turnId }),
+    });
+    assert.ok(response.ok);
+    await page.getByTestId("partial-reply").waitFor();
+    assert.equal(currentTurn(), turnId);
+    await page.getByTestId("stream-status").getByText("Connected", { exact: true }).waitFor();
+    const cancelled = await fetch(`${apiBase}/api/v1/turns/${turnId}/cancel`, { method: "POST", headers: { "X-Api-Key": token } });
+    assert.ok(cancelled.ok);
+    await waitStatus("interrupted");
   });
 
   await check("SSE reconnect / no cancel on refresh", async () => {
@@ -402,10 +433,12 @@ try {
       await page.setViewportSize({ width, height }); await page.reload({ waitUntil: "domcontentloaded" });
       await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name} horizontal overflow`);
-      if (width <= 700) {
+      if (width <= 900) {
         await page.getByRole("button", { name: "Open conversations", exact: true }).click();
         await page.keyboard.press("Shift+Tab");
         assert.ok(await page.evaluate(() => document.getElementById("conversation-sidebar").contains(document.activeElement)));
+        await page.locator("#conversation-sidebar").getByRole("button", { name: "Open agents", exact: true }).click();
+        await page.getByRole("dialog", { name: "Agents", exact: true }).waitFor();
         await page.keyboard.press("Escape");
         await page.getByRole("button", { name: "Open work inspector", exact: true }).click();
         await page.getByRole("button", { name: "Hide work inspector", exact: true }).click();
@@ -461,9 +494,11 @@ try {
     peer.stdin.end(JSON.stringify({ url: config.mcpServers.kane.env.KANE_CONNECTOR_WS_URL, code: pairing.pairing_code }) + "\n");
     await modal.getByText("Agent Connector is online", { exact: true }).waitFor();
     assert.equal((await apiGet("/api/v1/agents")).find(agent => agent.agent_id === pairing.agent_id).status, "ready");
-    await modal.getByRole("button", { name: "Close", exact: true }).click();
     await stop(peer);
     await poll(async () => (await apiGet("/api/v1/agents")).find(agent => agent.agent_id === pairing.agent_id).status, status => status === "unavailable");
+    await modal.locator(".pairing-status").getByText("Disconnected", { exact: true }).waitFor();
+    assert.equal(await modal.locator(".pairing-code").count(), 0, "Consumed code must not reappear after disconnect");
+    await modal.getByRole("button", { name: "Close", exact: true }).click();
     await page.getByRole("combobox", { name: "Select an Agent", exact: true }).selectOption(pairing.agent_id);
     await page.locator(".workspace-welcome").waitFor();
     await page.getByRole("combobox", { name: "Select an Agent", exact: true }).selectOption("kanaloa");

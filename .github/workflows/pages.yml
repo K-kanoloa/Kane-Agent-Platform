@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - "docs/**"
+      - "README.md"
+      - "LICENSE"
+      - "THIRD_PARTY_NOTICES.md"
+      - "apps/web/public/kane-octopus.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -29,10 +33,17 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Prepare public site
+        run: |
+          mkdir -p _site/images
+          cp docs/index.html _site/index.html
+          cp apps/web/public/kane-octopus.png _site/images/kane-octopus.png
+          cp LICENSE _site/LICENSE.txt
+          cp THIRD_PARTY_NOTICES.md _site/THIRD_PARTY_NOTICES.txt
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

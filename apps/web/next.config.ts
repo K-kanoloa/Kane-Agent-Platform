@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Next 16 blocks cross-origin dev resources by default (HMR, React dev client
   // chunks, etc). When the browser uses a host that differs from the bind host
   // (e.g. visiting http://127.0.0.1:3000 while the internal server reports

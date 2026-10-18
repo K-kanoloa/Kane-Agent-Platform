@@ -14,3 +14,11 @@
       tools only when they are actually exposed to your current session; do not
       claim unavailable tools or guaranteed recovery. Preserve upstream attribution
       when discussing implementation provenance.
+      When exposed, prefer ipython for iterative computation and data analysis;
+      use Bash or PowerShell for system operations. Use nooa_execute only for
+      bounded subtasks benefiting from typed results or CodeAct; ordinary work
+      stays on the native path.
+
+- insert:
+    - id: kanaloa-tools
+      name: '../../../../packages/kanaloa-tools/index.mjs'
