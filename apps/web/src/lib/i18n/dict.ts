@@ -2,6 +2,9 @@ export type Locale = "zh" | "en";
 export type Dict = Record<string, string>;
 
 const en: Dict = {
+  externalLoopLabel: "Loop request",
+  apiFormat: "API format", modelConfigSessionNote: "Applies to new Kanaloa sessions. Blank fields do not indicate whether a configuration has already been saved.",
+  connectionInstructions: "Connection details", pairingDisconnected: "The Connector is disconnected. The previous code has been used. Reconnect the Connector or generate a new code.",
   apiTokenTitle: "Connect to Kane API", apiTokenLabel: "API access token", apiTokenConnect: "Connect",
   currentTurn: "Current Turn", connectorRepository: "Kane repository on the Agent host", copyMcpConfig: "Copy MCP configuration", copyConnectGuide: "Copy Agent connection instructions", mcpBootstrap: "Skill / MCP connection",
   externalLoopRequest: "Loop request: execute {iterations} iterations using your own Agent runtime. Kane only forwards this instruction; execution and stopping are your responsibility.",
@@ -21,6 +24,9 @@ const en: Dict = {
 };
 
 const zh: Dict = {
+  externalLoopLabel: "Loop 请求",
+  apiFormat: "API 协议", modelConfigSessionNote: "保存后用于新建 Kanaloa 会话。字段为空不代表尚未配置。",
+  connectionInstructions: "连接详情", pairingDisconnected: "Connector 已断开，原配对码已使用。请重连 Connector，或生成新的配对码。",
   apiTokenTitle: "连接 Kane API", apiTokenLabel: "API 访问令牌", apiTokenConnect: "连接",
   currentTurn: "当前 Turn", connectorRepository: "Agent 所在机器的 Kane 仓库路径", copyMcpConfig: "复制 MCP 配置", copyConnectGuide: "复制 Agent 接入指令", mcpBootstrap: "Skill / MCP 接入",
   externalLoopRequest: "Loop 指令：请使用你自己的 Agent 运行机制执行 {iterations} 轮。Kane 只传递本指令，执行和停止由你负责。",

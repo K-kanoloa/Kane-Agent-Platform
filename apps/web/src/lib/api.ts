@@ -9,6 +9,7 @@ export type Permission = { request_id: string; title: string; created_at: number
 export type Activity = { event_id: string; event_type: string; created_at: string; payload: Record<string, string> };
 export type TurnDetail = Turn & { pending_permissions: Permission[]; loop: { current_iteration: number; max_iterations: number | null; stop_requested: boolean } | null; events: Activity[] };
 export type Decision = "allow-once" | "reject-once" | "cancelled";
+export type ModelApiFormat = "openai-completions" | "openai-responses" | "anthropic-messages";
 export type SendBody = { content: string; turn_id?: string; reply_to_message_id?: string; loop_mode?: boolean; max_iterations?: number | null };
 
 export function getApiBaseUrl() {
@@ -62,7 +63,7 @@ export const api = {
   activateKanaloa: () => request<Agent>("/agents/kanaloa/activate", {}, AbortSignal.timeout(45000)),
   deactivateKanaloa: () => request<void>("/agents/kanaloa/deactivate", {}),
   setKanaloaAutoStart: (auto_start: boolean) => request<Agent>("/agents/kanaloa/preferences", { auto_start }),
-  saveKanaloaModelConfig: (config: { base_url: string; model: string; api_key: string }) => request<{ status: string; provider: string; model: string }>("/agents/kanaloa/model-config", config),
+  saveKanaloaModelConfig: (config: { base_url: string; model: string; api_key: string; api_format?: ModelApiFormat }) => request<{ status: string; provider: string; model: string }>("/agents/kanaloa/model-config", config),
   conversations: (signal?: AbortSignal) => request<Conversation[]>("/conversations", undefined, signal),
   renameConversation: (cid: string, title: string) => request<Conversation>(`/conversations/${id(cid)}`, { title }, undefined, "PATCH"),
   deleteConversation: (cid: string) => request<void>(`/conversations/${id(cid)}`, undefined, undefined, "DELETE"),

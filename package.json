@@ -1,9 +1,9 @@
 {
     "name": "kane-agent-platform",
     "private": true,
-    "license": "UNLICENSED",
+    "license": "PolyForm-Noncommercial-1.0.0",
     "version": "3.0.1-beta",
-    "description": "Kane-Kanaloa v3 beta monorepo (proprietary).",
+    "description": "Kane-Kanaloa: long-running conversations and persistent AI execution.",
     "workspaces": [
         "apps/*",
         "packages/*"
@@ -12,6 +12,8 @@
         "setup:dsh": "node scripts/patch-dsh-acp.mjs",
         "setup:api": "node scripts/setup-python.mjs apps/api",
         "setup:bridge": "node scripts/setup-python.mjs apps/local-bridge",
+        "setup:kanaloa-tools": "npm --workspace @kane/kanaloa-tools run setup",
+        "test:kanaloa-tools": "npm --workspace @kane/kanaloa-tools test",
         "setup": "npm run setup:dsh && npm run setup:api && npm run setup:bridge",
         "postinstall": "node scripts/patch-dsh-acp.mjs",
         "venv:api": "npm run setup:api",
